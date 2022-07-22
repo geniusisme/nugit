@@ -1,3 +1,7 @@
+export def 'o{()]}'l'olo' [] {
+	'ololo'
+}
+
 export def remotes [] {
 	git remote | lines
 }
@@ -15,7 +19,7 @@ export def branches [] {
 export def delete [] {
 	each { |branch| git branch -D $branch.name } |
 		lines |
-		parse -r '^Deleted branch (?P<branch>[^ ]+) \(was (?P<commit>[^\)]+)\).$'
+		parse -r '^Deleted branch (?P<deleted_branch>[^ ]+) \(was (?P<commit>[^\)]+)\).$'
 }
 
 export def switch [index: int] {
@@ -50,6 +54,34 @@ export def add [] {
 }
 
 export def pr [] {
-	git push --set-upstream $env.nugit_remote (branches | where cur == ' * ').0.name
+	git push --set-upstream (current_remote) (branches | where cur == ' * ').0.name
 }
 
+export def clean [--force (-f)] {
+	let files_to_checkout = ($in | where changes == 'modified').file
+	let operation = { $files_to_checkout | each { git checkout $in } }
+	if ($force) {
+		do $operation
+	} else {
+		'following files will be reset to HEAD, proceed? (y/n)'
+		$files_to_checkout
+		if (input) == 'y' {
+			do $operation
+		}
+	}
+
+}
+
+def current_remote [] {
+	let from_env = (env | where name == 'nugit_remote')
+	if ($from_env | length) == 1 {
+		$from_env.0.value
+	} else {
+		let rem = remotes
+		if 'origin' in $rem {
+			'origin'
+		} else {
+			if ($rem | length) == 1 { $rem.0 } else { 'error' }
+		}
+	}
+}
