@@ -57,6 +57,28 @@ export def pr [] {
 	git push --set-upstream (current_remote) (branches | where cur == ' * ').0.name
 }
 
+export def restore [from?: string, --force (-f)] {
+	let restore_table = ($in | where ($it.changes == 'modified' || $it.changes == 'deleted'))
+	if ($restore_table | empty?) {
+		'nothing to restore'
+	} else {
+		let files_to_restore = $restore_table.file
+		let operation = { $files_to_restore | each {
+			if ($from == null) { git restore $in } else { git restore $'--source=($from)' --staged --worktree $in }
+		} }
+		if ($force) {
+			do $operation
+		} else {
+			'following files will be reset to HEAD, proceed? (y/n)'
+			$files_to_restore
+			if (input) == 'y' {
+				do $operation
+			}
+		}
+	}
+
+}
+
 export def clean [--force (-f)] {
 	let files_to_checkout = ($in | where changes == 'modified').file
 	let operation = { $files_to_checkout | each { git checkout $in } }
