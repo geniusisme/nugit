@@ -1,7 +1,3 @@
-export def 'o{()]}'l'olo' [] {
-	'ololo'
-}
-
 export def remotes [] {
 	git remote | lines
 }
@@ -33,6 +29,7 @@ def in_section [section: string] {
 def parse_columns [stage: string] {
 	parse -r '^(?P<changes>.+):\s+(?P<file>.+?)(?:\((?P<submodule>.+)\))?$' |
 		update changes { if ($in.submodule | empty?) { $in.changes } else { $in.submodule } } |
+		update file { $in.file | str trim } |
 		select changes file |
 		upsert stage $stage
 }
@@ -63,9 +60,11 @@ export def restore [from?: string, --force (-f)] {
 		'nothing to restore'
 	} else {
 		let files_to_restore = $restore_table.file
-		let operation = { $files_to_restore | each {
-			if ($from == null) { git restore $in } else { git restore $'--source=($from)' --staged --worktree $in }
-		} }
+		let operation = {
+			$files_to_restore | each {
+				if ($from == null) { git restore $in } else { git restore $'--source=($from)' --staged --worktree $in }
+			}
+		}
 		if ($force) {
 			do $operation
 		} else {
@@ -76,7 +75,6 @@ export def restore [from?: string, --force (-f)] {
 			}
 		}
 	}
-
 }
 
 export def clean [--force (-f)] {
@@ -91,7 +89,6 @@ export def clean [--force (-f)] {
 			do $operation
 		}
 	}
-
 }
 
 def current_remote [] {
