@@ -23,12 +23,12 @@ export def switch [index: int] {
 }
 
 def in_section [section: string] {
-	skip until $it == $section | skip 1 | skip while $it =~ '^\(.+\)$' | take until ($it | empty?)
+	skip until $it == $section | skip 1 | skip while $it =~ '^\(.+\)$' | take until ($it | is-empty)
 }
 
 def parse_columns [stage: string] {
 	parse -r '^(?P<changes>.+):\s+(?P<file>.+?)(?:\((?P<submodule>.+)\))?$' |
-		update changes { if ($in.submodule | empty?) { $in.changes } else { $in.submodule } } |
+		update changes { if ($in.submodule | is-empty) { $in.changes } else { $in.submodule } } |
 		update file { $in.file | str trim } |
 		select changes file |
 		upsert stage $stage
@@ -56,7 +56,7 @@ export def pr [] {
 
 export def restore [from?: string, --force (-f)] {
 	let restore_table = ($in | where ($it.changes == 'modified' || $it.changes == 'deleted'))
-	if ($restore_table | empty?) {
+	if ($restore_table | is-empty) {
 		'nothing to restore'
 	} else {
 		let files_to_restore = $restore_table.file
